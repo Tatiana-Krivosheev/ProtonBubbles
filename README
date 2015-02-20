@@ -1,0 +1,5 @@
+run new proton stuff with
+
+./newpro batch.mac 123 >& LLL
+
+123 shall be different in each run, thus bubbles config will differ
