@@ -9,7 +9,7 @@
 
 
 Parameterisation::Parameterisation(const PhantomSetup& phs):
-        _phs(phs)
+    _phs(phs)
 {
 }
 

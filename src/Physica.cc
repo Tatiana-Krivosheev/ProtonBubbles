@@ -1,131 +1,117 @@
+
+#include "G4SystemOfUnits.hh"
 #include "G4RunManager.hh"
-#include "globals.hh"
-#include "G4ProcessManager.hh"
 #include "G4Region.hh"
 #include "G4RegionStore.hh"
-
-#include "G4ParticleDefinition.hh"
-#include "G4ParticleTypes.hh"
-#include "G4ParticleTable.hh"
-
+#include "HadrontherapyPhysicsList.hh"
+#include "HadrontherapyPhysicsListMessenger.hh"
+#include "HadrontherapyStepMax.hh"
 #include "G4PhysListFactory.hh"
-#include "Physica.hh"
-#include "PhysicaMessenger.hh"
-#include "G4SystemOfUnits.hh"
+#include "G4VPhysicsConstructor.hh"
 
-// Physic lists (contained inside the Geant4 source code, in the 'physicslists folder')
+#include "G4HadronPhysicsQGSP_BIC_HP.hh"
+#include "G4HadronPhysicsQGSP_BIC.hh"
 #include "G4EmStandardPhysics_option3.hh"
-#include "G4EmLivermorePhysics.hh"
-#include "G4EmPenelopePhysics.hh"
+#include "G4EmStandardPhysics_option4.hh"
 #include "G4EmExtraPhysics.hh"
-#include "G4DecayPhysics.hh"
-#include "G4IonBinaryCascadePhysics.hh"
 #include "G4StoppingPhysics.hh"
+#include "G4DecayPhysics.hh"
 #include "G4HadronElasticPhysics.hh"
+#include "G4HadronElasticPhysicsHP.hh"
+#include "G4RadioactiveDecayPhysics.hh"
+#include "G4IonBinaryCascadePhysics.hh"
+#include "G4DecayPhysics.hh"
 #include "G4NeutronTrackingCut.hh"
-
-#include "G4DataQuestionaire.hh"
-#include "HadronPhysicsQGSP_BIC.hh"
-
 #include "G4LossTableManager.hh"
+#include "G4UnitsTable.hh"
+#include "G4ProcessManager.hh"
+#include "G4IonFluctuations.hh"
+#include "G4IonParametrisedLossModel.hh"
+#include "G4EmProcessOptions.hh"
+#include "G4ParallelWorldPhysics.hh"
+#include "G4EmLivermorePhysics.hh"
+#include "G4AutoDelete.hh"
 
 Physica::Physica(double cuts):
     G4VModularPhysicsList(),
-    _emPhysicsList(0),
-    _decayPhysicsList(0),
-    _emExtraPhysicsList(0),
-    _hadelasticPhysicsList(0),
-    _hadPhysicsList(0),
-    _stoppingPhysicsList(0),
-    _ionsPhysicsList(0),
-    _neutronsPhysicsList(0)
+    _emPhysicsList(nullptr),
+    _decayPhysicsList(nullptr),
+    _radioactiveDecay_List(nullptr)
 {
-    int ver = 1;
-
     G4LossTableManager::Instance();
 
     defaultCutValue = cuts;
 
-    std::cout << "Cut set to:" << G4BestUnit(cuts,"Length") << std::endl;
+    _cutForGamma = _cutForElectron = _cutForPositron = _cutForProton = cuts;
 
-    _cutForGamma     = defaultCutValue;
-    _cutForElectron  = defaultCutValue;
-    _cutForPositron  = defaultCutValue;
+    std::cout << "Cut set to:" << G4BestUnit(cuts,"Length") << '\n';
 
     _messenger = new PhysicaMessenger(this);
 
     SetVerboseLevel(ver);
 
     // EM physics
-    _emPhysicsList = new G4EmStandardPhysics_option3(ver);
-    _emName = G4String("standard_opt3");
+    _emPhysicsList = new G4EmStandardPhysics_option4();
+    _emName = G4String("standard_opt4");
+
+    _hadronPhys.push_back( new G4DecayPhysics());
+    _hadronPhys.push_back( new G4RadioactiveDecayPhysics());
+    _hadronPhys.push_back( new G4IonBinaryCascadePhysics());
+    _hadronPhys.push_back( new G4EmExtraPhysics());
+    _hadronPhys.push_back( new G4HadronElasticPhysics());
+    _hadronPhys.push_back( new G4StoppingPhysics());
+    _hadronPhys.push_back( new G4HadronPhysicsQGSP_BIC());
 
     // Decay physics and all particles
-    _decayPhysicsList = new G4DecayPhysics(ver);
-
-    // Synchroton Radiation & GN Physics
-     _emExtraPhysicsList = new G4EmExtraPhysics(ver);
-
-    // Hadron Elastic scattering
-    _hadelasticPhysicsList = new G4HadronElasticPhysics(ver);
-
-    // Hadron Physics
-    _hadPhysicsList = new HadronPhysicsQGSP_BIC(ver);
-
-    // Stopping Physics
-    _stoppingPhysicsList = new G4StoppingPhysics(ver);
-
-    // Ion Physics
-    _ionsPhysicsList = new G4IonBinaryCascadePhysics(ver);
-
-    // Neutron tracking cut
-    _neutronsPhysicsList = new G4NeutronTrackingCut(ver);
+    _decayPhysicsList      = new G4DecayPhysics();
+    _radioactiveDecay_List = new G4RadioactiveDecayPhysics();
 }
 
 Physica::~Physica()
-{ 
+{
     delete _messenger;
 
     delete _emPhysicsList;
     delete _decayPhysicsList;
-    delete _emExtraPhysicsList;
-    delete _hadelasticPhysicsList;
-    delete _hadPhysicsList;
-    delete _stoppingPhysicsList;
-    delete _ionsPhysicsList;
-    delete _neutronsPhysicsList;
+    delete _radioactiveDecay_List;
+
+    for(size_t i = 0; i != _hadronPhys.size(); ++i)
+    {
+        delete hadronPhys[i];
+    }
 }
 
 void Physica::ConstructParticle()
 {
     _decayPhysicsList->ConstructParticle();
     _emPhysicsList->ConstructParticle();
-    _emExtraPhysicsList->ConstructParticle();
-    _hadelasticPhysicsList->ConstructParticle();
-    _hadPhysicsList->ConstructParticle();
-    _stoppingPhysicsList->ConstructParticle();
-    _ionsPhysicsList->ConstructParticle();
-    _neutronsPhysicsList->ConstructParticle();
+    _radioactiveDecay_List->ConstructParticle();
+    for(size_t i = 0; i != _hadronPhys.size(); ++i)
+    {
+        hadronPhys[i]->ConstructParticle();
+    }
+    hadronPhys.clear();
 }
 
 void Physica::ConstructProcess()
 {
     AddTransportation();
 
-    _emPhysicsList->ConstructProcess();
-    _decayPhysicsList->ConstructProcess();
-    _emExtraPhysicsList->ConstructProcess();
-    _hadelasticPhysicsList->ConstructProcess();
-    _hadPhysicsList->ConstructProcess();
-    _stoppingPhysicsList->ConstructProcess();
-    _ionsPhysicsList->ConstructProcess();
-    _neutronsPhysicsList->ConstructProcess();
+    emPhysicsList->ConstructProcess();
+    em_config.AddModels();
+
+    for(size_t i=0; i != hadronPhys.size(); ++i)
+    {
+        hadronPhys[i]->ConstructProcess();
+    }
+
+    AddStepMax();
 }
 
 void Physica::AddPhysicsList(const G4String& name)
 {
     if (verboseLevel>1)
-	   G4cout << "PhysicsList::AddPhysicsList: <" << name << ">" << G4endl;
+	   std::cout << "PhysicsList::AddPhysicsList: <" << name << ">" << '\n';
 
     if (name == _emName)
         return;
@@ -133,30 +119,29 @@ void Physica::AddPhysicsList(const G4String& name)
     /////////////////////////////////////////////////////////////////////////////
     //   ELECTROMAGNETIC MODELS
     /////////////////////////////////////////////////////////////////////////////
-    if (name == "standard_opt3")
+    if (name == "HADRONTHERAPY_1")
     {
-	   _emName = name;
-	   delete _emPhysicsList;
-	   _emPhysicsList = new G4EmStandardPhysics_option3();
-	   G4RunManager::GetRunManager()->PhysicsHasBeenModified();
-	   G4cout << "THE FOLLOWING ELECTROMAGNETIC PHYSICS LIST HAS BEEN ACTIVATED: G4EmStandardPhysics_option3" << G4endl;
+        // The HADRONTHERAPY_1 physics list corresponds to the actual QGSP_BIC_HP list
+        // but with the following differences:
+        // --> G4EmStandardPhysics_option4 for the electromagnetic processes
+        //     is used in place of the less accurate G4EmStandardPhysics
+        // --> The G4RadioactiveDecayPhysics is added
+        delete _emPhysicsList;
+        _emPhysicsList = new G4EmStandardPhysics_option4();
+        _emName = G4String("standard_opt4");
+
+        hadronPhys.clear();
+
+        hadronPhys.push_back( new G4DecayPhysics());
+        hadronPhys.push_back( new G4RadioactiveDecayPhysics());
+        hadronPhys.push_back( new G4IonBinaryCascadePhysics());
+        hadronPhys.push_back( new G4EmExtraPhysics());
+        hadronPhys.push_back( new G4HadronElasticPhysicsHP());
+        hadronPhys.push_back( new G4StoppingPhysics());
+        hadronPhys.push_back( new G4HadronPhysicsQGSP_BIC_HP());
+
+        G4cout << "HADRONTHERAPY_1 PHYSICS LIST has been activated" << G4endl;
     }
-    else if (name == "LowE_Livermore")
-    {
-	   _emName = name;
-	   delete _emPhysicsList;
-	   _emPhysicsList = new G4EmLivermorePhysics();
-	   G4RunManager::GetRunManager()->PhysicsHasBeenModified();
-	   G4cout << "THE FOLLOWING ELECTROMAGNETIC PHYSICS LIST HAS BEEN ACTIVATED: G4EmLivermorePhysics" << G4endl;
-    }
-    else if (name == "LowE_Penelope")
-    {
-	   _emName = name;
-	   delete _emPhysicsList;
-	   _emPhysicsList = new G4EmPenelopePhysics();
-	   G4RunManager::GetRunManager()->PhysicsHasBeenModified();
-	   G4cout << "THE FOLLOWING ELECTROMAGNETIC PHYSICS LIST HAS BEEN ACTIVATED: G4EmLivermorePhysics" << G4endl;
-    } 
     else
     {
 	   G4cout << "PhysicsList::AddPhysicsList: <" << name << ">"
@@ -166,7 +151,7 @@ void Physica::AddPhysicsList(const G4String& name)
 }
 
 void Physica::SetCuts()
-{  
+{
     if (verboseLevel > 0)
     {
         G4cout << "PhysicsList::SetCuts:";

@@ -19,8 +19,8 @@ class Phantom : public G4VUserDetectorConstruction
     public: const int MAT_WATER  = 0;
     public: const int MAT_AIR    = 1;
     public: const int MAT_VACUUM = 2;
-    public: const int MAT_BUBBLE = 3;    
-    public: const int MAT_PLEX   = 4;    
+    public: const int MAT_BUBBLE = 3;
+    public: const int MAT_PLEX   = 4;
     public: const int MAT_ACET   = 5;
     public: const int MAT_H2     = 6;
 #pragma endregion
@@ -36,7 +36,7 @@ class Phantom : public G4VUserDetectorConstruction
 
     private: G4Box*             _water_box;
     private: G4LogicalVolume*   _water_box_log;
-    private: G4VPhysicalVolume* _water_box_phys; 
+    private: G4VPhysicalVolume* _water_box_phys;
 
     private: G4Box*             _voxel_box;
     private: G4LogicalVolume*   _voxel_box_log;
@@ -77,7 +77,7 @@ class Phantom : public G4VUserDetectorConstruction
     {
         return _phs.cube_z();
     }
- 
+
     public: int nofv_x() const
     {
         return _phs.nofv_x();
@@ -133,12 +133,12 @@ class Phantom : public G4VUserDetectorConstruction
     public: const std::vector<G4Material*>& materials() const
     {
         return _materials;
-    } 
+    }
 
     public: const size_t* mat_IDs() const
     {
         return _mat_IDs;
-    } 
+    }
 #pragma endregion
 
     public: void SetMagField(double field_x, double field_y, double field_z);

@@ -12,5 +12,5 @@ class StackAction : public G4UserStackingAction
     public: virtual ~StackAction();
 #pragma endregion
 
-    public: virtual G4ClassificationOfNewTrack ClassifyNewTrack( const G4Track* aTrack);
+    public: virtual G4ClassificationOfNewTrack ClassifyNewTrack(const G4Track* aTrack);
 };
